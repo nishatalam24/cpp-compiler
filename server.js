@@ -26,6 +26,7 @@ app.post('/run', (req, res) => {
 
         // Execute the compiled program with inputs
         const inputStr = inputs.join('\n');
+        
         exec(`echo "${inputStr}" | ./program`, (runError, runStdout, runStderr) => {
             if (runError) {
                 return res.json({ output: runStderr });
