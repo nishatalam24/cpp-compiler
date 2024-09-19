@@ -4,10 +4,10 @@ const { exec } = require('child_process');
 const fs = require('fs');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 4000;
 
 // Use CORS middleware to allow requests from all origins
-app.use(cors({ origin: '*' }));
+app.use(cors('*' ));
 app.use(express.json());
 
 app.post('/run', (req, res) => {
@@ -35,6 +35,20 @@ app.post('/run', (req, res) => {
         });
     });
 });
+
+
+app.post('/commandrun', (req, res) => {
+    const { command } = req.body;
+
+    console.log(command)
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        res.send({ output: stderr });
+      } else {
+        res.send({ output: stdout });
+      }
+    });
+  });
 
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
