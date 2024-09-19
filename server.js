@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors'); // Import cors middleware
 const { exec } = require('child_process');
 const fs = require('fs');
+const pty = require('node-pty'); // Import node-pty library
+const os = require('os');
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -37,19 +39,45 @@ app.post('/run', (req, res) => {
 });
 
 
-app.post('/commandrun', (req, res) => {
+const shell = os.platform() === 'win32' ? 'cmd.exe' : 'bash';
+// Create a persistent terminal session using node-pty
+const ptyProcess = pty.spawn(shell, [], {
+    name: 'xterm-color',
+    cols: 80,
+    rows: 30,
+    cwd: process.cwd(),
+    env: process.env,
+  });
+  
+  // Store the terminal output
+  let terminalOutput = '';
+  
+  // Listen for data from the terminal
+  ptyProcess.on('data', (data) => {
+    terminalOutput += data;
+  });
+  
+  app.post('/commandrun', (req, res) => {
     const { command } = req.body;
-
-    console.log(command)
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        res.send({ output: stderr });
-      } else {
-        res.send({ output: stdout });
-      }
-    });
+  
+    // Send the command to the terminal
+    ptyProcess.write(`${command}\r`);
+  
+    // Give the terminal a little time to process the command
+    setTimeout(() => {
+      // Send the terminal output back to the client
+      res.json({ output: terminalOutput });
+  
+      // Clear the terminal output for the next command
+      terminalOutput = '';
+    }, 100);
   });
 
+
+  app.get('/terminal-output', (req, res) => {
+    res.json({ output: terminalOutput });
+  });
+  
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });
